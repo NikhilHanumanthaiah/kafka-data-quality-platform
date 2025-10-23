@@ -1,0 +1,182 @@
+version: '3.8'
+
+services:
+  kafka-controller-1:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: kafka-controller-1
+    hostname: kafka-controller-1
+    ports:
+      - "19091:9091"
+    environment:
+      CLUSTER_ID: RvmtETPjQU2Wdx1kxkWHYA
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_LISTENERS: "PLAINTEXT://kafka-controller-1:9092,PLAINTEXT_HOST://0.0.0.0:19091,CONTROLLER://kafka-controller-1:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-controller-1:9092,PLAINTEXT_HOST://localhost:19091"
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-controller-1:9093"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - ./kraft-data/controller1:/var/lib/kafka/data
+    networks:
+      - kafka-net
+
+  kafka-broker-2:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: kafka-broker-2
+    hostname: kafka-broker-2
+    depends_on:
+      - kafka-controller-1
+    ports:
+      - "19092:19092"
+    environment:
+      CLUSTER_ID: RvmtETPjQU2Wdx1kxkWHYA
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: "PLAINTEXT://kafka-broker-2:9092,PLAINTEXT_HOST://0.0.0.0:19092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-broker-2:9092,PLAINTEXT_HOST://localhost:19092"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-controller-1:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - ./kraft-data/broker2:/var/lib/kafka/data
+    networks:
+      - kafka-net
+
+  kafka-broker-3:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: kafka-broker-3
+    hostname: kafka-broker-3
+    depends_on:
+      - kafka-controller-1
+    ports:
+      - "19093:19093"
+    environment:
+      CLUSTER_ID: RvmtETPjQU2Wdx1kxkWHYA
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: "PLAINTEXT://kafka-broker-3:9092,PLAINTEXT_HOST://0.0.0.0:19093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-broker-3:9092,PLAINTEXT_HOST://localhost:19093"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-controller-1:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - ./kraft-data/broker3:/var/lib/kafka/data
+    networks:
+      - kafka-net
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.7.0
+    container_name: schema-registry
+    depends_on:
+      - kafka-controller-1
+      - kafka-broker-2
+      - kafka-broker-3
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka-controller-1:9092,PLAINTEXT://kafka-broker-2:9092,PLAINTEXT://kafka-broker-3:9092"
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+    networks:
+      - kafka-net
+
+  connect:
+    image: confluentinc/cp-kafka-connect:7.7.0
+    container_name: kafka-connect
+    depends_on:
+      - kafka-controller-1
+      - kafka-broker-2
+      - kafka-broker-3
+      - schema-registry
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: "kafka-controller-1:9092,kafka-broker-2:9092,kafka-broker-3:9092"
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: kafka-connect-group
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/etc/kafka-connect/jars"
+    volumes:
+      - ./connectors:/etc/kafka-connect/jars
+    networks:
+      - kafka-net
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: kafka_user
+      POSTGRES_PASSWORD: kafka_pass
+      POSTGRES_DB: dq_metrics
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - kafka-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./configs/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - kafka-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - kafka-net
+
+  akhq:
+    image: tchiotludo/akhq:latest
+    container_name: akhq
+    depends_on:
+      - kafka-controller-1
+      - kafka-broker-2
+      - kafka-broker-3
+    ports:
+      - "8085:8080"
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            local:
+              properties:
+                bootstrap.servers: "kafka-controller-1:9092,kafka-broker-2:9092,kafka-broker-3:9092"
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:

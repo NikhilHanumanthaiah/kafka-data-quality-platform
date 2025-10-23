@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "IoTSensorData",
+  "namespace": "com.kafka.dataquality.iot",
+  "fields": [
+    { "name": "device_id", "type": "string" },
+    { "name": "temperature", "type": "float" },
+    { "name": "humidity", "type": "float" },
+    { "name": "battery_level", "type": ["null", "float"], "default": null },
+    {
+      "name": "timestamp",
+      "type": { "type": "long", "logicalType": "timestamp-millis" }
+    }
+  ]
+}

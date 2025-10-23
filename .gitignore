@@ -1,0 +1,65 @@
+# ------------------------------
+# Kafka KRaft Local Data
+# ------------------------------
+kraft-data/
+!kraft-data/.keep   # optional placeholder to keep the directory structure if needed
+
+# ------------------------------
+# Postgres Data
+# ------------------------------
+postgres-data/
+!postgres-data/.keep
+
+# ------------------------------
+# Kafka Connect JARs & Plugins
+# ------------------------------
+connectors/
+!connectors/*.json        # keep connector configuration files
+connectors/*.jar          # ignore connector plugin binaries
+connectors/*.zip
+connectors/*.tar.gz
+
+# ------------------------------
+# Monitoring Configurations
+# ------------------------------
+# Keep YAMLs and Grafana dashboards
+configs/monitoring/*.yml
+!configs/monitoring/prometheus.yml
+
+monitoring/grafana/
+!monitoring/grafana/provisioning/
+!monitoring/grafana/provisioning/**
+
+# ------------------------------
+# Docker & Logs
+# ------------------------------
+*.log
+*.out
+*.tmp
+*.pid
+*.bak
+*.swp
+
+# Ignore Docker-related local build or compose artifacts
+*.env
+docker-compose.override.yml
+
+# ------------------------------
+# IDE & System Files
+# ------------------------------
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ------------------------------
+# Python (if you have utility scripts)
+# ------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
