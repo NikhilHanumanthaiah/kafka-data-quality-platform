@@ -6,7 +6,7 @@ services:
     container_name: kafka-controller-1
     hostname: kafka-controller-1
     ports:
-      - "19091:19091" # Use the same external and internal port for the listener
+      - "19091:19091"
     environment:
       CLUSTER_ID: RvmtETPjQU2Wdx1kxkWHYA
       KAFKA_NODE_ID: 1
@@ -24,8 +24,12 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_MIN_INSYNC_REPLICAS: 1
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+      KAFKA_OPTS: "-javaagent:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar=9404:/usr/share/jmx_exporter/kafka-jmx.yml"
     volumes:
       - ./kraft-data/controller1:/var/lib/kafka/data
+      - ./jmx-exporter/jmx_prometheus_javaagent-1.5.0.jar:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar
+      - ./jmx-exporter/kafka-jmx.yml:/usr/share/jmx_exporter/kafka-jmx.yml
     networks:
       - kafka-net
 
@@ -36,7 +40,7 @@ services:
     depends_on:
       - kafka-controller-1
     ports:
-      - "19092:19092"
+      - "19092:19092" # Use the same external and internal port for the listener
     environment:
       CLUSTER_ID: RvmtETPjQU2Wdx1kxkWHYA
       KAFKA_NODE_ID: 2
@@ -49,8 +53,11 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LOG_DIRS: /var/lib/kafka/data
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OPTS: "-javaagent:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar=9404:/usr/share/jmx_exporter/kafka-jmx.yml"
     volumes:
       - ./kraft-data/broker2:/var/lib/kafka/data
+      - ./jmx-exporter/jmx_prometheus_javaagent-1.5.0.jar:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar
+      - ./jmx-exporter/kafka-jmx.yml:/usr/share/jmx_exporter/kafka-jmx.yml
     networks:
       - kafka-net
 
@@ -74,8 +81,12 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LOG_DIRS: /var/lib/kafka/data
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OPTS: "-javaagent:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar=9404:/usr/share/jmx_exporter/kafka-jmx.yml"
     volumes:
       - ./kraft-data/broker3:/var/lib/kafka/data
+      - ./jmx-exporter/jmx_prometheus_javaagent-1.5.0.jar:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar
+      - ./jmx-exporter/kafka-jmx.yml:/usr/share/jmx_exporter/kafka-jmx.yml
+
     networks:
       - kafka-net
 
@@ -92,6 +103,11 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka-controller-1:9092,PLAINTEXT://kafka-broker-2:9092,PLAINTEXT://kafka-broker-3:9092"
       SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_OPTS: "-javaagent:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar=9405:/usr/share/jmx_exporter/schema-registry-jmx.yml"
+    
+    volumes:
+      - ./jmx-exporter/jmx_prometheus_javaagent-1.5.0.jar:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar
+      - ./jmx-exporter/schema-registry-jmx.yml:/usr/share/jmx_exporter/schema-registry-jmx.yml
     networks:
       - kafka-net
 
@@ -120,8 +136,12 @@ services:
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_PLUGIN_PATH: "/usr/share/java,/etc/kafka-connect/jars"
+      CONNECT_OPTS: "-javaagent:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar=9406:/usr/share/jmx_exporter/connect-jmx.yml"
+      KAFKA_OPTS: "-javaagent:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar=9406:/usr/share/jmx_exporter/connect-jmx.yml"
     volumes:
       - ./connectors:/etc/kafka-connect/jars
+      - ./jmx-exporter/jmx_prometheus_javaagent-1.5.0.jar:/usr/share/jmx_exporter/jmx_prometheus_javaagent.jar
+      - ./jmx-exporter/connect-jmx.yml:/usr/share/jmx_exporter/connect-jmx.yml
     networks:
       - kafka-net
 

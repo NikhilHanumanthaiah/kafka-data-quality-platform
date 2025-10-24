@@ -1,0 +1,14 @@
+rules:
+  - pattern: "kafka.server<type=(.+), name=(.+)PerSec\\w*, topic=(.+)><>Count"
+    name: kafka_server_$1_$2_per_sec
+    labels:
+      topic: "$3"
+    type: COUNTER
+
+  - pattern: "kafka.server<type=(.+), name=(.+)><>(Count|Value)"
+    name: kafka_server_$1_$2
+    type: GAUGE
+
+  - pattern: "kafka.network<type=(.+), name=(.+)><>(Count|Value)"
+    name: kafka_network_$1_$2
+    type: GAUGE

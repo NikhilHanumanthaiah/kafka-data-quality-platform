@@ -1,0 +1,4 @@
+rules:
+  - pattern: "io.confluent.kafka.schemaregistry<type=(.+), name=(.+)><>(Count|Value)"
+    name: schema_registry_$1_$2
+    type: GAUGE
